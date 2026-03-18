@@ -105,9 +105,9 @@ export function getScores(): CatScore[] {
 export function getCatNames(prefix: string = ""): string[] {
   return db
     .prepare<[string], { name: string }>(
-      `SELECT name FROM cats WHERE name LIKE ? ORDER BY name`
+      `SELECT name FROM cats WHERE name GLOB ? ORDER BY name`
     )
-    .all(`${prefix}%`)
+    .all(`${prefix}*`)
     .map((r) => r.name);
 }
 

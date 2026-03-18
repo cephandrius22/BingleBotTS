@@ -1,7 +1,7 @@
 import {
   SlashCommandBuilder,
+  SlashCommandStringOption,
   ChatInputCommandInteraction,
-  AutocompleteInteraction,
   EmbedBuilder,
 } from "discord.js";
 import * as karmaData from "../../data/karma.js";
@@ -11,6 +11,20 @@ import * as karmaData from "../../data/karma.js";
 // /karma scores
 // /karma history <cat>
 
+const CAT_CHOICES = [
+  { name: "Ramona", value: "ramona" },
+  { name: "Midnight", value: "midnight" },
+  { name: "Steris", value: "steris" },
+] as const;
+
+function catOption(opt: SlashCommandStringOption): SlashCommandStringOption {
+  return opt
+    .setName("cat")
+    .setDescription("Cat name")
+    .setRequired(true)
+    .addChoices(...CAT_CHOICES);
+}
+
 export const data = new SlashCommandBuilder()
   .setName("karma")
   .setDescription("Manage cat karma")
@@ -18,13 +32,7 @@ export const data = new SlashCommandBuilder()
     sub
       .setName("give")
       .setDescription("Give karma to a cat")
-      .addStringOption((opt) =>
-        opt
-          .setName("cat")
-          .setDescription("Cat name")
-          .setRequired(true)
-          .setAutocomplete(true)
-      )
+      .addStringOption(catOption)
       .addIntegerOption((opt) =>
         opt
           .setName("amount")
@@ -44,13 +52,7 @@ export const data = new SlashCommandBuilder()
     sub
       .setName("take")
       .setDescription("Take karma from a cat")
-      .addStringOption((opt) =>
-        opt
-          .setName("cat")
-          .setDescription("Cat name")
-          .setRequired(true)
-          .setAutocomplete(true)
-      )
+      .addStringOption(catOption)
       .addIntegerOption((opt) =>
         opt
           .setName("amount")
@@ -73,22 +75,8 @@ export const data = new SlashCommandBuilder()
     sub
       .setName("history")
       .setDescription("Show karma history for a cat")
-      .addStringOption((opt) =>
-        opt
-          .setName("cat")
-          .setDescription("Cat name")
-          .setRequired(true)
-          .setAutocomplete(true)
-      )
+      .addStringOption(catOption)
   );
-
-export async function autocomplete(
-  interaction: AutocompleteInteraction
-): Promise<void> {
-  const focused = interaction.options.getFocused();
-  const names = karmaData.getCatNames(focused).slice(0, 25);
-  await interaction.respond(names.map((n) => ({ name: n, value: n })));
-}
 
 export async function execute(
   interaction: ChatInputCommandInteraction
@@ -104,9 +92,10 @@ export async function execute(
     const newTotal = karmaData.applyDelta(cat, delta, reason);
     const sign = delta > 0 ? "+" : "";
     const action = delta > 0 ? "gave" : "took";
+    const prep = delta > 0 ? "to" : "from";
 
     await interaction.reply(
-      `${sign}${delta} karma ${action} to **${cat}** ` +
+      `${sign}${delta} karma ${action} ${prep} **${cat}** ` +
         `(now ${newTotal})` +
         (reason ? ` — *${reason}*` : "")
     );

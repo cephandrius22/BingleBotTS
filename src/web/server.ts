@@ -1,11 +1,12 @@
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import * as karmaData from "../data/karma.js";
 
 const app = express();
 app.use(express.json());
 
-// JSON API routes (same contract as the Python version)
-
+// JSON API routes
 app.get("/scores", (_req, res) => {
   res.json(karmaData.getScores());
 });
@@ -29,6 +30,22 @@ app.post("/karma", (req, res) => {
   const newTotal = karmaData.applyDelta(cat, delta as number);
   res.json({ cat, delta, newTotal });
 });
+
+// Serve the React SPA in production. In dev, Vite runs its own server and
+// proxies API calls to this Express server — no static serving needed.
+if (process.env.NODE_ENV === "production") {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  // Compiled output: dist/web/server.js → dist/client/
+  const clientDist = path.resolve(__dirname, "../client");
+
+  app.use(express.static(clientDist));
+
+  // SPA fallback — send index.html for any unmatched GET so client-side
+  // routing works. Express 5 requires the {*splat} wildcard syntax.
+  app.get("/{*splat}", (_req, res) => {
+    res.sendFile(path.join(clientDist, "index.html"));
+  });
+}
 
 export function startServer(port = 8080): void {
   app.listen(port, () => {

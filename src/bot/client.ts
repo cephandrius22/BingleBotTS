@@ -5,12 +5,12 @@ import {
   Routes,
   Events,
   ChatInputCommandInteraction,
-  AutocompleteInteraction,
 } from "discord.js";
 import * as karmaCommand from "./commands/karma.js";
+import * as scoresCommand from "./commands/scores.js";
 
 // Commands registry — add new commands here as you build them out.
-const commands = [karmaCommand];
+const commands = [karmaCommand, scoresCommand];
 
 export function createBot(token: string): Client {
   const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -18,17 +18,14 @@ export function createBot(token: string): Client {
   client.once(Events.ClientReady, async (c) => {
     console.log(`Logged in as ${c.user.tag}`);
 
-    // Register slash commands globally (takes up to an hour to propagate).
-    // For faster testing during dev, you can pass a guildId to registerCommands.
-    await registerCommands(token, c.user.id);
+    const guildId = process.env.DISCORD_GUILD_ID;
+    await registerCommands(token, c.user.id, guildId);
 
     await c.user.setActivity("/help for commands");
   });
 
   client.on(Events.InteractionCreate, async (interaction) => {
-    if (interaction.isAutocomplete()) {
-      await handleAutocomplete(interaction);
-    } else if (interaction.isChatInputCommand()) {
+    if (interaction.isChatInputCommand()) {
       await handleCommand(interaction);
     }
   });
@@ -38,27 +35,20 @@ export function createBot(token: string): Client {
 
 async function registerCommands(
   token: string,
-  clientId: string
+  clientId: string,
+  guildId?: string
 ): Promise<void> {
   const rest = new REST().setToken(token);
   const body = commands.map((cmd) => cmd.data.toJSON());
 
-  await rest.put(Routes.applicationCommands(clientId), { body });
-  console.log(`Registered ${body.length} slash command(s).`);
-}
+  const route = guildId
+    ? Routes.applicationGuildCommands(clientId, guildId)
+    : Routes.applicationCommands(clientId);
 
-async function handleAutocomplete(
-  interaction: AutocompleteInteraction
-): Promise<void> {
-  const cmd = commands.find(
-    (c) => c.data.name === interaction.commandName
+  await rest.put(route, { body });
+  console.log(
+    `Registered ${body.length} slash command(s) ${guildId ? `to guild ${guildId}` : "globally"}.`
   );
-  if (!cmd) return;
-  try {
-    await cmd.autocomplete(interaction);
-  } catch (err) {
-    console.error("Autocomplete error:", err);
-  }
 }
 
 async function handleCommand(

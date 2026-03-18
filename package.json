@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
-    "build": "tsc",
+    "build": "tsc && npm run client:build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "client:dev": "npm run dev --prefix client",
+    "client:build": "npm run build --prefix client"
   },
   "dependencies": {
     "better-sqlite3": "^11.9.1",
