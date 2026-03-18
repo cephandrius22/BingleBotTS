@@ -15,6 +15,11 @@ app.get("/snapshots", (_req, res) => {
   res.json(karmaData.getSnapshots());
 });
 
+app.post("/reset", (_req, res) => {
+  karmaData.takeSnapshotAndReset();
+  res.json({ ok: true });
+});
+
 app.post("/karma", (req, res) => {
   const { cat, delta } = req.body as { cat?: unknown; delta?: unknown };
 

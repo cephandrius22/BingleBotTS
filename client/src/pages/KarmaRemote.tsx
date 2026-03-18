@@ -14,6 +14,8 @@ export default function KarmaRemote() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [confirmReset, setConfirmReset] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const fetchScores = useCallback(() => {
     return fetch("/scores")
@@ -47,7 +49,6 @@ export default function KarmaRemote() {
       });
       if (!res.ok) throw new Error("Request failed");
       const { newTotal } = (await res.json()) as { newTotal: number };
-      // Sync with authoritative server value
       setScores((prev) =>
         prev.map((s) => (s.name === cat ? { ...s, karma: newTotal } : s))
       );
@@ -65,14 +66,34 @@ export default function KarmaRemote() {
     }
   }
 
+  async function handleReset() {
+    setResetting(true);
+    try {
+      const res = await fetch("/reset", { method: "POST" });
+      if (!res.ok) throw new Error("Reset failed");
+      await fetchScores();
+    } finally {
+      setResetting(false);
+      setConfirmReset(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-950 text-white p-6">
       <div className="max-w-xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <Link to="/" className="text-gray-400 hover:text-white transition-colors text-sm">
-            ← Back
-          </Link>
-          <h1 className="text-2xl font-bold">Karma Remote</h1>
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <Link to="/" className="text-gray-400 hover:text-white transition-colors text-sm">
+              ← Back
+            </Link>
+            <h1 className="text-2xl font-bold">Karma Remote</h1>
+          </div>
+          <button
+            onClick={() => setConfirmReset(true)}
+            className="text-sm text-gray-500 hover:text-red-400 transition-colors"
+          >
+            Reset day
+          </button>
         </div>
 
         {loading && <p className="text-gray-400">Loading…</p>}
@@ -137,6 +158,33 @@ export default function KarmaRemote() {
           })}
         </div>
       </div>
+
+      {confirmReset && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-6">
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl p-6 max-w-sm w-full">
+            <h2 className="text-lg font-semibold mb-2">Reset the day?</h2>
+            <p className="text-gray-400 text-sm mb-6">
+              This will snapshot current scores and reset all karma to zero.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmReset(false)}
+                disabled={resetting}
+                className="flex-1 py-2.5 rounded-lg border border-gray-700 text-gray-300 hover:bg-gray-800 disabled:opacity-40 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="flex-1 py-2.5 rounded-lg bg-red-900 border border-red-700 text-red-300 font-semibold hover:bg-red-800 disabled:opacity-40 transition-colors"
+              >
+                {resetting ? "Resetting…" : "Reset"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

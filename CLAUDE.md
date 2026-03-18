@@ -31,11 +31,17 @@ DISCORD_GUILD_ID=...    # Optional: set for instant slash command updates (vs. ~
 
 Binglebot is a Discord bot with a React web UI and REST API for tracking karma scores for cats (Ramona, Midnight, Steris).
 
+**Everything runs in a single Node.js process**, started by `src/index.ts`:
+- The **Discord bot** opens a persistent WebSocket connection to Discord and listens for slash commands.
+- The **Express server** listens on :8080 and serves the REST API.
+- Both share the same in-memory SQLite database module — there is no separate API process.
+- The **React app** is not a server. It's static files (HTML/JS/CSS) that Express sends to the browser on the first request; after that it runs in the browser and calls the Express API routes via `fetch()`. In production, Express serves these files directly. In dev, Vite runs its own server on :5173 and proxies API calls to Express on :8080.
+
 **Three backend layers, all initialized in `src/index.ts`:**
 
 - **`src/data/karma.ts`** — Pure synchronous SQLite data layer (better-sqlite3). No Discord/HTTP dependencies. Tests use `initDb(":memory:")` for isolated in-memory databases.
 - **`src/bot/`** — Discord.js bot. `client.ts` handles command registration and routing; commands live in `bot/commands/` and are registered in the `commands` array in `client.ts`.
-- **`src/web/server.ts`** — Express 5 REST API on port 8080 (`GET /scores`, `GET /snapshots`, `POST /karma`). Serves `dist/client/` as static files with SPA fallback when `NODE_ENV=production`.
+- **`src/web/server.ts`** — Express 5 REST API on port 8080 (`GET /scores`, `GET /snapshots`, `POST /karma`, `POST /reset`). Serves `dist/client/` as static files with SPA fallback when `NODE_ENV=production`.
 
 **React frontend (`client/`):** Vite + React + Tailwind v4. Four pages: Home (index), Karma Remote (give/take karma with optimistic updates), Leaderboard, Daily Log. Has its own `package.json`, `tsconfig.json` (bundler module resolution, not NodeNext), and `vite.config.ts`.
 

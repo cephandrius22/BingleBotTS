@@ -13,6 +13,7 @@ export default defineConfig({
       "/scores": "http://localhost:8080",
       "/snapshots": "http://localhost:8080",
       "/karma": "http://localhost:8080",
+      "/reset": "http://localhost:8080",
     },
   },
 });
