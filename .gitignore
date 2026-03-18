@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+karma.db
+*.json
+!package.json
+!tsconfig.json
